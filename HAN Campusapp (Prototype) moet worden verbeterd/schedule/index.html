@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Permissions-Policy" content="third-party-cookies=(self), clipboard-write=(self)" />
+  <meta name="referrer" content="no-referrer-when-downgrade" />
+  <title>Rooster — HAN Campusapp</title>
+  <link rel="stylesheet" href="/styles/global.css" />
+</head>
+<body>
+  <main class="page">
+    <h1 class="page__title">Rooster</h1>
+    <p class="page__lead">Bekijk je actuele rooster of voeg lessen toe aan je agenda.</p>
+
+    <!-- Tab Navigation -->
+    <div class="page-tabs">
+      <button class="page-tab is-active" data-tab="myx">MyX</button>
+      <button class="page-tab" data-tab="overige">Overige</button>
+    </div>
+
+    <!-- MyX Tab (Default) -->
+    <div class="page-tab-content" data-tab-content="myx">
+      <div class="schedulefake">
+        <img src="/assets/schedulefake.png" alt="Voorbeeld van je rooster" />
+        <button id="view-schedule-btn" class="schedulefake__cta btn btn--primary">
+          View my Schedule
+        </button>
+      </div>
+
+      <div class="schedule-actions schedule-actions--centered">
+        <button id="add-to-calendar-btn" class="btn btn--dark btn--square btn--add-to-calendar">
+          Add to Calender
+        </button>
+      </div>
+    </div>
+
+    <!-- Overige Tab -->
+    <div class="page-tab-content" data-tab-content="overige" style="display:none;">
+      <div style="padding: var(--global-up) var(--global-right) var(--global-down) var(--global-left);">
+        <p style="color: rgba(23, 28, 24, 0.65); margin-bottom: 12px;">Aanvullende roosters en services.</p>
+        <div class="schedule-actions" style="flex-direction: column;">
+          <a href="/schedule/misc.html" class="btn btn--square" style="border:1px solid var(--color-line);">
+            Voorzieningen
+          </a>
+          <a href="/schedule/services.html" class="btn btn--square" style="border:1px solid var(--color-line);">
+            Services
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/scripts/nav.js" defer></script>
+  <script src="/scripts/webllm.js" defer></script>
+  <script src="/scripts/schedule.js" defer></script>
+  <script>
+    // Tab switching functionality
+    document.addEventListener("DOMContentLoaded", function () {
+      var tabs = document.querySelectorAll(".page-tab");
+      var contents = document.querySelectorAll(".page-tab-content");
+
+      tabs.forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          var tabName = this.getAttribute("data-tab");
+
+          // Remove active class from all tabs and contents
+          tabs.forEach(function (t) { t.classList.remove("is-active"); });
+          contents.forEach(function (c) { c.style.display = "none"; });
+
+          // Add active class to clicked tab and show content
+          tab.classList.add("is-active");
+          var activeContent = document.querySelector('[data-tab-content="' + tabName + '"]');
+          if (activeContent) activeContent.style.display = "block";
+        });
+      });
+    });
+  </script>
+</body>
+</html>
+

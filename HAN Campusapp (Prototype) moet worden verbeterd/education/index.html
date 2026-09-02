@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Opleiding — HAN Campusapp</title>
+  <link rel="stylesheet" href="/styles/global.css" />
+</head>
+<body>
+  <main class="page">
+    <h1 class="page__title">Opleiding</h1>
+    <p class="page__lead">Studievoortgang en leermiddelen in één overzicht.</p>
+
+    <div class="study-blocks">
+      <div class="square-block study-block">
+        <img class="study-block__logo" src="/assets/logo.svg" alt="Studiepunten" />
+        <p class="study-block__desc">Bekijk hoeveel studiepunten je al hebt behaald dit jaar.</p>
+        <a class="study-block__link" href="https://isas.han.nl/default.aspx" target="_blank" rel="noopener">
+          Verken meer →
+        </a>
+        <p style="margin-top:10px; color:rgba(23,28,24,.55);">Kijk op ISAS: Cursusinfo / Afwezigheid</p>
+      </div>
+
+      <div class="square-block study-block">
+        <img class="study-block__logo" src="/assets/logo.svg" alt="Brightspace" />
+        <p class="study-block__desc">Al je cursussen, opdrachten en cijfers op één plek.</p>
+        <a class="study-block__link" href="https://leren.han.nl/" target="_blank" rel="noopener">
+          Verken meer →
+        </a>
+      </div>
+    </div>
+
+    <button id="ask-opleiding-btn" class="btn btn--primary study-block__cta">
+      Vraag hier je Opleiding
+    </button>
+  </main>
+
+  <div id="opleiding-overlay" class="overlay">
+    <div class="overlay__panel">
+      <h2 class="overlay__title">Toon meer informatie</h2>
+      <p class="overlay__text">
+        Hier komt de gedetailleerde opleidingsinformatie — programma-onderdelen,
+        contactpersonen en veelgestelde vragen.
+      </p>
+      <div class="overlay__actions">
+        <button id="opleiding-close" class="btn btn--primary btn--square">Sluiten</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/scripts/nav.js" defer></script>
+  <script src="/scripts/webllm.js" defer></script>
+  <script src="/scripts/education.js" defer></script>
+</body>
+</html>

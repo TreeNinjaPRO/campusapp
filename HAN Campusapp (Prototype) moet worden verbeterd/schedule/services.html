@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Locatie — HAN Campusapp</title>
+  <link rel="stylesheet" href="/styles/global.css" />
+</head>
+<body>
+  <main class="page">
+    <h1 class="page__title">Locatie</h1>
+    <p class="page__lead">Zoek een campuslocatie op en bekijk hem direct op de kaart.</p>
+
+    <div id="mapping" class="mapping">
+      <div id="innermap" class="innermap">
+        <span class="innermap__label">
+          <img src="/assets/location.svg" alt="" />
+          Locatie
+        </span>
+        <button id="locate-toggle" class="innermap__go btn btn--primary">🔍</button>
+      </div>
+
+      <div id="locate-box" class="locate-box">
+        <input id="locate-input" type="text" placeholder='Typ een plaats, bv. "Arnhem"' />
+        <button id="locate-go" class="btn btn--dark btn--square">Ga</button>
+      </div>
+
+      <div style="margin-top:16px; border-radius:10px; overflow:hidden; box-shadow: var(--shadow-card);">
+        <iframe
+          id="map-frame"
+          title="Campuskaart"
+          width="100%"
+          height="360"
+          style="border:0; display:block;"
+          src="https://www.openstreetmap.org/export/embed.html?bbox=5.9330%2C51.9800%2C5.9600%2C51.9950&layer=mapnik&marker=51.9880%2C5.9470">
+        </iframe>
+      </div>
+    </div>
+  </main>
+
+  <script src="/scripts/nav.js" defer></script>
+  <script src="/scripts/webllm.js" defer></script>
+  <script src="/scripts/services.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HANssistent — HAN Campusapp</title>
+  <link rel="stylesheet" href="/styles/global.css" />
+</head>
+<body>
+  <main class="page">
+    <h1 class="page__title">HANssistent AI</h1>
+    <p class="page__lead">Een lokale AI-assistent die volledig in je browser draait — er verlaat niets je apparaat.</p>
+
+    <div class="assistant-shell">
+      <div id="assistant-status" class="assistant-status">
+        Nog geen model geladen.
+      </div>
+
+      <div class="assistant-mode-toggle">
+        <button class="assistant-mode is-active" data-mode="assistantLLM">assistantLLM</button>
+        <button class="assistant-mode" data-mode="calenderLLM">calenderLLM</button>
+      </div>
+
+      <div id="assistant-screenshot" class="assistant-screenshot" style="display:none;">
+        <img id="assistant-screenshot-thumb" alt="Roosterscreenshot" />
+        <div style="flex:1;">
+          <p style="margin:0; font-weight:600;">Roosterscreenshot beschikbaar</p>
+          <p style="margin:2px 0 0; color:rgba(23,28,24,.6);">Vastgelegd via "Add to Calender".</p>
+        </div>
+        <button id="analyze-schedule-btn" class="btn btn--primary btn--square">Analyseer</button>
+      </div>
+
+      <div id="assistant-log" class="assistant-log">
+        <div class="assistant-msg assistant-msg--system">
+          Importeer een model linksonder om te beginnen.
+        </div>
+      </div>
+
+      <form id="assistant-form" class="assistant-composer">
+        <input id="assistant-input" type="text" placeholder="Typ een bericht…" autocomplete="off" />
+        <button type="submit" class="btn btn--primary">Stuur</button>
+      </form>
+    </div>
+  </main>
+
+  <input id="gguf-file-input" type="file" accept=".gguf" multiple hidden />
+
+  <script src="/scripts/nav.js" defer></script>
+  <script src="/scripts/webllm.js" defer></script>
+  <script src="/scripts/assistant.js" defer></script>
+</body>
+</html>

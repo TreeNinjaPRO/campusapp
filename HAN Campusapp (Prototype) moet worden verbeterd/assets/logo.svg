@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" fill="none">
+  <rect x="0" y="4" width="32" height="32" rx="8" fill="#e70052"/>
+  <path d="M9 12v16M9 20h9M18 12v16" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="40" y="26" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#171c18">campus</text>
+</svg>
