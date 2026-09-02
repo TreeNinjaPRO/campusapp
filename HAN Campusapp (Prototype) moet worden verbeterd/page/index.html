@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mijn pagina — HAN Campusapp</title>
+  <link rel="stylesheet" href="/styles/global.css" />
+</head>
+<body>
+  <main class="page">
+    <h1 class="page__title">Mijn pagina</h1>
+
+    <div class="page-tabs">
+      <button class="page-tab is-active" data-tab="profile">Profiel</button>
+      <button class="page-tab" data-tab="settings">Instellingen</button>
+    </div>
+
+    <div class="page-tab-content" data-tab-content="profile">
+      <div class="profile">
+        <div class="circularprofile">
+          <img src="/assets/placeholder.jpg" alt="Profielfoto" />
+        </div>
+        <p id="profile-name" class="profile__name">Jordy van Dijk</p>
+        <p id="profile-email" class="profile__email">j.vandijk@student.han.nl</p>
+
+        <div class="profile__actions">
+          <button id="edit-profile-btn" class="btn btn--primary">Profiel bewerken</button>
+          <a class="btn btn--dark" href="https://han.osiris-student.nl/" target="_blank" rel="noopener">
+            OSIRIS student
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-tab-content" data-tab-content="settings" style="display:none;">
+        <div class="settings-list">
+          <div class="settings-row"><span>Meldingen</span><span>Aan</span></div>
+          <div class="settings-row"><span>Taal</span><span>Nederlands</span></div>
+          <div class="settings-row">
+            <span>Dark mode</span>
+            <button id="dark-mode-toggle" class="btn btn--square btn--small">Off</button>
+          </div>
+        </div>
+    </div>
+  </main>
+
+  <div id="edit-overlay" class="overlay">
+    <div class="overlay__panel">
+      <h2 class="overlay__title">Profiel bewerken</h2>
+      <form id="edit-form">
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+          <input id="edit-name-input" type="text" placeholder="Naam"
+            style="padding:10px 12px; border:1px solid var(--color-line); border-radius:4px; font:inherit;" />
+          <input id="edit-email-input" type="email" placeholder="E-mail"
+            style="padding:10px 12px; border:1px solid var(--color-line); border-radius:4px; font:inherit;" />
+        </div>
+        <div class="overlay__actions">
+          <button id="edit-cancel" type="button" class="btn btn--square" style="border:1px solid var(--color-line);">
+            Annuleren
+          </button>
+          <button type="submit" class="btn btn--primary btn--square">Opslaan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/scripts/nav.js" defer></script>
+  <script src="/scripts/webllm.js" defer></script>
+  <script src="/scripts/page.js" defer></script>
+</body>
+</html>
