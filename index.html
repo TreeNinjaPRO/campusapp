@@ -6,7 +6,11 @@
 <body>
     <header>
         <h1></h1>
-            <img src="assets/HAN-merkteken-descriptor.png" alt="HAN university of applied sciences logo" width="150">
+           <nav class="logo-nav">
+            <ul class="logo-list">
+                <li class="logo-item"><a href="index.html"><img src="assets/HAN-merkteken-descriptor.png" alt="HAN university of applied sciences logo" width="150"></a></li>
+            </ul>
+        </nav>
             <nav>
                 <ul>
                     <li><a href="index.html">Home</a></li>
@@ -21,8 +25,117 @@
     </header>
 
     <main>
+        <p>Welkom bij de HAN Assistent!<br>
+            Op deze website vind je alle informatie die je nodig kunt hebben tijdens je opleiding.<br>
+            De assistent is verdeeld in verschillende categoriën,<br>
+            klik gerust rond om wegwijs te worden maar hieronder ook een kort overzicht per categorie. </p>
+
+            <button type="button" class="collapsible">Rooster</button>
+            <div class="content">
+            <p>Onder dit kopje vind je je rooster en de interactieve plattegrond. ​</p>
+            <nav>
+                <ul>
+                    <li><a href="rooster.html">rooster</a></li>
+                </ul>
+            </nav>
+            </div>
+
+            <button type="button" class="collapsible">Communicatie</button>
+            <div class="content">
+            <p>Hier vind je alle manieren om met elkaar te communiceren zoals Outlook en Teams.​</p>
+            <nav>
+                <ul>
+                    <li><a href="communicatie.html">communicatie</a></li>
+                </ul>
+            </nav>
+            </div>
+
+            <button type="button" class="collapsible">Opleidinggegevens</button>
+            <div class="content">
+            <p>Hier vind je alle informatie over opdrachten en toetsen etc. zoals Brightspace en informatie over de overgang. ​</p>
+            <nav>
+                <ul>
+                    <li><a href="opleidinggegevens.html">opleidinggegevens</a></li>
+                </ul>
+            </nav>
+            </div>
 
     </main>
+    <script>
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+
+        function updateAllParentHeights(element) {
+            var current = element;
+            while (current) {
+                if (current.classList && current.classList.contains("content")) {
+                    var button = current.previousElementSibling;
+                    if (button && button.classList.contains("active")) {
+                        current.style.maxHeight = current.scrollHeight + "px";
+                    }
+                }
+                current = current.parentElement;
+            }
+        }
+
+        for (i = 0; i < coll.length; i++) {
+            // Add icon SVG if not already present
+            if (!coll[i].querySelector('.icon-svg')) {
+                var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('class', 'icon-svg');
+                svg.setAttribute('width', '20');
+                svg.setAttribute('height', '20');
+                svg.setAttribute('viewBox', '0 0 20 20');
+                svg.setAttribute('fill', 'none');
+                svg.setAttribute('stroke', '#e70052');
+                svg.setAttribute('stroke-width', '2');
+                svg.setAttribute('stroke-linecap', 'round');
+                
+                var line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line1.setAttribute('x1', '10');
+                line1.setAttribute('y1', '5');
+                line1.setAttribute('x2', '10');
+                line1.setAttribute('y2', '15');
+                
+                var line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line2.setAttribute('x1', '5');
+                line2.setAttribute('y1', '10');
+                line2.setAttribute('x2', '15');
+                line2.setAttribute('y2', '10');
+                
+                svg.appendChild(line1);
+                svg.appendChild(line2);
+                coll[i].appendChild(svg);
+            }
+            
+            coll[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var svg = this.querySelector('.icon-svg');
+                var lines = svg.querySelectorAll('line');
+                
+                if (this.classList.contains('active')) {
+                    // Hide vertical line (minus sign)
+                    lines[0].style.display = 'none';
+                } else {
+                    // Show vertical line (plus sign)
+                    lines[0].style.display = '';
+                }
+                
+                var content = this.nextElementSibling;
+                
+                if (content.style.maxHeight){
+                    content.style.maxHeight = null;
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                }
+                
+                // Update parent heights after animation completes
+                setTimeout(function() {
+                    updateAllParentHeights(content);
+                }, 220);
+            });
+        }
+    </script>
 
     <footer>
         <p>&copy; </p>

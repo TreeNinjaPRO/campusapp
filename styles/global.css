@@ -97,9 +97,25 @@ footer {
   padding: 20px;
   color: #171c18;
 }
-
+footer p {
+  background: none;
+  color: #171c18;
+}
 p {
   margin: 0;
+  text-align: center;
+  background: #4a4949;
+  color: #ffffff;
+  width: fit-content;
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin: 0 auto;
+  display: block;
+}
+div {
+  align-items: center;
+  justify-content: center;
+  display: flex;
 }
 .collapsible {
   background-color: #eee;
