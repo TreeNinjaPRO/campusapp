@@ -80,6 +80,42 @@ nav a {
   border-radius: 4px;
 }
 
+.content nav {
+  display: block;
+  text-align: left;
+}
+
+.content nav ul {
+  justify-content: flex-end;
+}
+
+.content--link-row {
+  position: relative;
+}
+
+.content--link-row > p {
+  width: fit-content;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.content--link-row > nav {
+  position: absolute;
+  top: 8px;
+  right: 18px;
+}
+
+@media (max-width: 600px) {
+  .content--link-row {
+    display: block;
+  }
+
+  .content--link-row > nav {
+    position: static;
+    margin-top: 8px;
+  }
+}
+
 nav a:hover {
   color: #e70052;
   background: #171c18;
@@ -117,6 +153,10 @@ div {
   justify-content: center;
   display: flex;
 }
+div div {
+  flex-direction: column;
+  gap: 8px;
+}
 .collapsible {
   background-color: #eee;
   color: #444;
@@ -146,9 +186,42 @@ div {
   background-color: #ccc;
 }
 .content {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0 18px;
   background-color: white;
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.2s ease-out;
+}
+
+.content--grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 12px;
+  align-items: start;
+}
+
+.collapse-item {
+  display: block;
+  min-width: 0;
+}
+
+.collapse-item > .collapsible {
+  width: 100%;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .content--grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .content--grid {
+    grid-template-columns: 1fr;
+  }
 }
