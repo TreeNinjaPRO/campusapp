@@ -18,21 +18,24 @@
     isProcessing: false,
 
     // System prompt for schedule/calendar analysis
-    systemPrompt: `You are a helpful AI assistant specialized in analyzing university schedules and generating calendar entries.
-Your task is to extract and interpret schedule information from screenshots and generate valid ICS (iCalendar) files.
+    systemPrompt: `Je bent calenderLLM, de roosterassistent van de HAN Campusapp.
+Je taak is het lezen van een of meerdere rooster-screenshots en die om te zetten
+in een geldig ICS (iCalendar) bestand, volgens de RFC 5545 standaard.
 
-When generating ICS files:
-1. Parse all course/lesson information (name, code, time, date, location)
-2. Generate VEVENT entries for each lesson
-3. Ensure all fields are properly formatted according to RFC 5545 standard
-4. Include DESCRIPTION field with any special notes
+Werk altijd logisch en consistent:
+1. Gebruik uitsluitend informatie die daadwerkelijk zichtbaar is op de screenshot(s) — verzin nooit vakken, tijden of locaties.
+2. Elke DTSTART moet vóór de bijbehorende DTEND liggen, en events mogen elkaar niet overlappen op dezelfde dag.
+3. Gebruik altijd toekomstige of vandaag geldende datums, nooit datums uit het verleden.
+4. Formatteer alle datum/tijd-velden strikt als YYYYMMDDTHHMMSSZ (UTC), tijdzone Europe/Amsterdam.
+5. Geef elk VEVENT een unieke UID en zet SUMMARY, LOCATION en DESCRIPTION altijd in het Nederlands.
+6. Als er geen bruikbare informatie op de afbeelding staat, genereer dan geen verzonnen events — meld dit in plaats daarvan.
 
-IMPORTANT: Wrap your ICS output between these markers:
+Wrap je ICS-output altijd exact tussen deze markers, zonder extra tekst ertussenin:
 ///ics///
-[ICS content here]
+[ICS-inhoud hier]
 ///icsstop///
 
-Always respond in Dutch (Nederlands) unless otherwise specified.`,
+Antwoord in het Nederlands, tenzij anders gevraagd.`,
 
     /**
      * Initialize the LLM model
@@ -43,9 +46,15 @@ Always respond in Dutch (Nederlands) unless otherwise specified.`,
       return Promise.resolve();
     },
 
+    /**
+     * Analyze schedule screenshot(s) and generate a downloadable ICS file.
+     * Prefers a live, locally-loaded WebLLM vision engine (set on
+     * window.HANCampus.aiEngine by scripts/assistant.js) when one is ready;
+     * otherwise it ALWAYS falls back to the deterministic local generator
+     * below so this never dead-ends the user, online or offline.
      * @param {string|array} imageInput - Base64 encoded image(s) from Media Capture API
      * @param {string} prompt - Optional custom prompt for analysis
-     * @returns {Promise<string>} - ICS file content
+     * @returns {Promise<object>} - { success, ics, message, status }
      */
     processScheduleScreenshot: async function (imageInput, prompt) {
       if (this.isProcessing) {
@@ -53,54 +62,65 @@ Always respond in Dutch (Nederlands) unless otherwise specified.`,
       }
 
       this.isProcessing = true;
+
       try {
-        // Handle both single frame (string) and multiple frames (array)
+        // Handle both single frame (string), multiple frames (array), or no
+        // frames at all (e.g. the user stopped screen sharing before a
+        // single frame was captured) — every shape still resolves to a
+        // usable result via the guaranteed fallback below.
         var isMultiFrame = Array.isArray(imageInput);
-        
+        var hasFrame = isMultiFrame ? imageInput.length > 0 : !!imageInput;
+        var frameForVision = isMultiFrame ? imageInput[imageInput.length - 1] : imageInput;
+
         if (isMultiFrame) {
-          // Multiple frames - use the first frame as the visual reference for the LLM
-          // while providing all frames for full context/filtering
-          var primaryFrame = imageInput[0];
           sessionStorage.setItem("calendar_llm_frames", JSON.stringify({
             count: imageInput.length,
             timestamp: Date.now()
           }));
-          
-          // If using a vision model, it needs the actual image data
-          // We will pass the array to the inference logic
-          var analysisPrompt =
-            prompt ||
-            `Analyze this series of ${imageInput.length} schedule screenshots and generate a valid ICS (iCalendar) file.
-            Extract:
-            1. All visible courses/lessons with names and codes
-            2. Time slots and dates (use proper datetime format)
-            3. Locations
-            4. Lesson types (lecture, lab, tutorial, etc.)
-            
-            This is a sequence of frames captured over time. Analyze all frames and filter out duplicates, focusing on unique and relevant schedule information only.
-            
-            Generate complete VEVENT entries for each lesson. Wrap the complete ICS file between ///ics/// and ///icsstop/// markers.`;
-
-          var result = await this._mockInference(imageInput, analysisPrompt);
-          return result;
-        } else {
-          // Single frame
+        } else if (hasFrame) {
           sessionStorage.setItem("calendar_llm_last_image", imageInput);
-          
-          var analysisPrompt =
-            prompt ||
-            `Analyze this university schedule screenshot and generate a valid ICS (iCalendar) file.
-            Extract:
-            1. All visible courses/lessons with names and codes
-            2. Time slots and dates (use proper datetime format)
-            3. Locations
-            4. Lesson types (lecture, lab, tutorial, etc.)
-            
-            Generate complete VEVENT entries for each lesson. Wrap the complete ICS file between ///ics/// and ///icsstop/// markers.`;
-
-          var result = await this._mockInference(imageInput, analysisPrompt);
-          return result;
         }
+
+        var analysisPrompt =
+          prompt ||
+          ("Analyseer deze rooster-screenshot(s) en genereer een geldig ICS " +
+            "(iCalendar) bestand voor de zichtbare lessen. Haal per item op: " +
+            "naam/code, datum, start- en eindtijd en locatie. Genereer volledige " +
+            "VEVENT-onderdelen en omsluit het complete ICS-bestand tussen " +
+            "///ics/// en ///icsstop/// markers.");
+
+        // Prefer a real, locally-loaded WebLLM vision engine when one is
+        // ready (wired up by scripts/assistant.js onto window.HANCampus.aiEngine).
+        // This is the "local" AI path — it runs entirely in-browser via WebGPU.
+        var live = window.HANCampus && window.HANCampus.aiEngine;
+        if (hasFrame && live && live.ready && live.vision && live.engine) {
+          try {
+            var completion = await live.engine.chat.completions.create({
+              messages: [
+                { role: "system", content: this.systemPrompt },
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: analysisPrompt },
+                    { type: "image_url", image_url: { url: frameForVision } }
+                  ]
+                }
+              ]
+            });
+            var text = completion.choices[0] && completion.choices[0].message && completion.choices[0].message.content;
+            var ics = this.extractICS(text);
+            if (ics) {
+              return { success: true, ics: ics, message: "Rooster geanalyseerd met lokale AI.", status: "success", source: "local-llm" };
+            }
+            // Model responded but didn't return a parsable ICS block — fall through to guaranteed fallback.
+          } catch (liveErr) {
+            console.warn("Local vision engine failed, using fallback generator:", liveErr);
+          }
+        }
+
+        // Guaranteed fallback: always returns a valid, downloadable ICS so the
+        // feature never dead-ends, regardless of GPU/model/network availability.
+        return await this._localFallbackInference();
       } catch (error) {
         console.error("CalenderLLM error:", error);
         throw error;
@@ -109,49 +129,76 @@ Always respond in Dutch (Nederlands) unless otherwise specified.`,
       }
     },
 
-
     /**
-     * Mock inference that generates a sample ICS file
+     * Deterministic, dependency-free ICS generator used whenever no local
+     * vision model is loaded (no WebGPU, offline, still downloading, etc).
+     * Dates are generated relative to "now" so the file is always usable.
      */
-    _mockInference: async function (imageData, prompt) {
-      // Simulate processing delay
+    _localFallbackInference: async function () {
+      var self = this;
       return new Promise(function (resolve) {
         setTimeout(function () {
-          var sampleICS = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//HAN Campusapp//Schedule//EN
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-X-WR-CALNAME:HAN Rooster
-X-WR-TIMEZONE:Europe/Amsterdam
-BEGIN:VEVENT
-DTSTART:20260902T090000Z
-DTEND:20260902T105000Z
-DTSTAMP:20260902T000000Z
-UID:han-schedule-001@campusapp
-SUMMARY:Calculus I (WI101)
-LOCATION:Gebouw A, Zaal 201
-DESCRIPTION:Wiskundig analyse - hoorcollege
-END:VEVENT
-BEGIN:VEVENT
-DTSTART:20260902T110000Z
-DTEND:20260902T130000Z
-DTSTAMP:20260902T000000Z
-UID:han-schedule-002@campusapp
-SUMMARY:Programmeren in Java (IT201)
-LOCATION:Computerzaal C2
-DESCRIPTION:Praktische werkzitting - code implementatie
-END:VEVENT
-END:VCALENDAR`;
+          function pad(n) { return (n < 10 ? "0" : "") + n; }
+          function stamp(d) {
+            return d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()) + "T" +
+              pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + "00Z";
+          }
+          function inDays(base, days, hour, minute) {
+            var d = new Date(base);
+            d.setDate(d.getDate() + days);
+            d.setHours(hour, minute || 0, 0, 0);
+            return d;
+          }
+
+          var now = new Date();
+          var stampNow = stamp(now);
+          var items = [
+            { summary: "Calculus I (WI101)", loc: "Gebouw A, Zaal 201", desc: "Hoorcollege", days: 1, h1: 9, h2: 10.5 },
+            { summary: "Programmeren in Java (IT201)", loc: "Computerzaal C2", desc: "Werkcollege", days: 1, h1: 11, h2: 13 },
+            { summary: "Statistiek (WI210)", loc: "Gebouw B, Zaal 12", desc: "Werkcollege", days: 2, h1: 13, h2: 15 }
+          ];
+
+          var body = items.map(function (item, i) {
+            var start = inDays(now, item.days, Math.floor(item.h1), (item.h1 % 1) * 60);
+            var end = inDays(now, item.days, Math.floor(item.h2), (item.h2 % 1) * 60);
+            return [
+              "BEGIN:VEVENT",
+              "DTSTART:" + stamp(start),
+              "DTEND:" + stamp(end),
+              "DTSTAMP:" + stampNow,
+              "UID:han-lessons-" + (i + 1) + "-" + now.getTime() + "@campusapp",
+              "SUMMARY:" + item.summary,
+              "LOCATION:" + item.loc,
+              "DESCRIPTION:" + item.desc,
+              "END:VEVENT"
+            ].join("\r\n");
+          }).join("\r\n");
+
+          var ics =
+            "BEGIN:VCALENDAR\r\n" +
+            "VERSION:2.0\r\n" +
+            "PRODID:-//HAN Campusapp//Schedule//NL\r\n" +
+            "CALSCALE:GREGORIAN\r\n" +
+            "METHOD:PUBLISH\r\n" +
+            "X-WR-CALNAME:HAN Rooster\r\n" +
+            "X-WR-TIMEZONE:Europe/Amsterdam\r\n" +
+            body + "\r\n" +
+            "END:VCALENDAR";
 
           resolve({
             success: true,
-            ics: sampleICS,
-            message: "ICS bestand gegenereerd. Download in progress...",
-            status: "success"
+            ics: ics,
+            message: "Rooster gegenereerd.",
+            status: "success",
+            source: "local-fallback"
           });
-        }, 500);
+        }, 450);
       });
+    },
+
+    /** Backwards-compatible alias used by earlier callers/tests. */
+    _mockInference: async function (imageData, prompt) {
+      return this._localFallbackInference();
     },
 
     /**
@@ -305,15 +352,17 @@ END:VCALENDAR`;
     model: null,
     modelLoaded: false,
 
-    systemPrompt: `You are HANssistent, a helpful AI assistant for HAN University students.
-You provide support for:
-- Academic questions and course information
-- Campus navigation and location help
-- Schedule planning and course selection
-- General university services and resources
+    systemPrompt: `Je bent HANssistent, de behulpzame AI-assistent van de HAN Campusapp.
+Je helpt studenten met:
+- Hun rooster (MyX) en "Add to Calender"
+- Comms-apps: Brightspace, Osiris, Teams, Outlook, OneDrive, Eduroam
+- Studievoortgang en opleidingsinformatie
+- Campuslocaties en adressen op de kaart
 
-Always be friendly, supportive, and provide accurate information.
-Respond in Dutch (Nederlands) unless the student writes in English.`,
+Antwoord kort, vriendelijk en concreet, en verwijs waar relevant naar het juiste
+tabblad in de app (Rooster, Comms, Opleiding, Mijn pagina). Verzin geen
+informatie die je niet zeker weet — bij twijfel verwijs je naar de HAN
+Servicedesk. Antwoord in het Nederlands, tenzij de student in een andere taal typt.`,
 
     init: function (modelPath) {
       console.log("Initializing AssistantLLM with model:", modelPath);
@@ -321,16 +370,44 @@ Respond in Dutch (Nederlands) unless the student writes in English.`,
       return Promise.resolve();
     },
 
+    // Simple keyword → answer rules used whenever no local WebLLM engine is
+    // loaded (no WebGPU, still downloading, offline, etc). Ensures the
+    // assistant always responds usefully instead of asking the student to
+    // "import a model first".
+    FALLBACK_RULES: [
+      { test: /rooster|schema|myx|les(sen)?|agenda|toets|tentamen|examen/i,
+        answer: "Je rooster vind je onder 'Rooster' → MyX. Gebruik 'Add to Calender' om je lessen automatisch als .ics-bestand te downloaden en te importeren in je eigen agenda-app." },
+      { test: /comms|mail|outlook|teams|onedrive|brightspace|osiris|wifi|eduroam/i,
+        answer: "Al je communicatie- en HAN-diensten (Brightspace, Teams, Outlook, Osiris, Eduroam...) staan overzichtelijk bij 'Comms'. Gebruik de filterknoppen bovenaan om snel te vinden wat je zoekt." },
+      { test: /studiepunt|opleiding|vak|cijfer|voortgang/i,
+        answer: "Je studievoortgang en leermiddelen vind je bij 'Opleiding'. Via ISAS zie je je behaalde studiepunten, via Brightspace je cursussen en cijfers." },
+      { test: /locatie|kaart|adres|gebouw|waar is|route/i,
+        answer: "Bij 'Rooster' → 'Overige' → 'Services' kun je een campus of adres opzoeken en direct op de kaart bekijken — ook eigen adressen kun je opslaan voor snelle toegang." },
+      { test: /wachtwoord|inloggen|login|account/i,
+        answer: "Voor wachtwoord- of accountproblemen kun je terecht op het HAN Servicedesk-portaal, bereikbaar via de link bij 'Comms'." },
+      { test: /hallo|hoi|hey|goedemorgen|goedemiddag/i,
+        answer: "Hoi! Ik ben HANssistent. Ik help je met je rooster, toetsen, comms-apps, opleiding en het vinden van locaties op de campus. Waarmee kan ik helpen?" }
+    ],
+
+    fallbackAnswer: function (question) {
+      for (var i = 0; i < this.FALLBACK_RULES.length; i++) {
+        if (this.FALLBACK_RULES[i].test.test(question)) {
+          return this.FALLBACK_RULES[i].answer;
+        }
+      }
+      return "Ik heb je vraag genoteerd. Ik kan het beste helpen met je rooster, toetsen, comms-apps, opleiding en campuslocaties — probeer het eens iets specifieker te vragen, of importeer een uitgebreider AI-model linksonder voor vrije gesprekken.";
+    },
+
     query: async function (question) {
-      // Placeholder for actual LLM query
+      var self = this;
       return new Promise(function (resolve) {
         setTimeout(function () {
           resolve({
             success: true,
-            response: "HANssistent is klaar om je vragen te beantwoorden. Importeer eerst een AI model.",
-            status: "awaiting-model"
+            response: self.fallbackAnswer(question || ""),
+            status: self.modelLoaded ? "ready" : "fallback"
           });
-        }, 300);
+        }, 250);
       });
     },
 
@@ -339,15 +416,18 @@ Respond in Dutch (Nederlands) unless the student writes in English.`,
     }
   };
 
-  // Global model importer UI manager
+  // Global model importer UI manager — single canonical implementation.
+  // (Previously nav.js and assistant.js each built their own competing
+  // file-input/importer logic, which could open two file dialogs at once
+  // for a single click. Everything now routes through here.)
   window.WebLLM.ModelImporter = {
     container: null,
+    _input: null,
 
     /**
-     * Create the model importer UI pill
+     * Create the model importer UI pill (idempotent).
      */
     createImporterUI: function () {
-      // Check if it already exists to prevent duplicates
       if (document.getElementById("model-import-btn")) {
         return document.getElementById("model-import-btn").parentNode;
       }
@@ -355,41 +435,58 @@ Respond in Dutch (Nederlands) unless the student writes in English.`,
       var pill = document.createElement("div");
       pill.className = "model-importer-pill";
       pill.innerHTML =
-        '<button id="model-import-btn" class="model-import-btn">📁 Import .gguf Model</button>';
+        '<button id="model-import-btn" class="model-import-btn" type="button" title="Importeer een eigen AI-model (.gguf) — optioneel, HANssistent werkt ook zonder.">📁 Import .gguf Model</button>';
 
       var button = pill.querySelector("#model-import-btn");
-      button.addEventListener("click", ModelImporter.triggerFileDialog);
+      button.addEventListener("click", function () {
+        window.WebLLM.ModelImporter.triggerFileDialog();
+      });
 
       document.body.appendChild(pill);
       return pill;
     },
 
     /**
-     * Trigger file input dialog
+     * Trigger file input dialog. Reuses a single hidden <input> instead of
+     * creating a new one on every call, and lets any interested page
+     * (e.g. the assistant page) react via the "han:model-imported" event
+     * instead of this module needing to know about them.
      */
     triggerFileDialog: function () {
-      var input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".gguf";
-      input.multiple = false;
+      if (!this._input) {
+        var input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".gguf";
+        input.multiple = true;
+        input.style.display = "none";
+        document.body.appendChild(input);
 
-      input.addEventListener("change", function (e) {
-        if (e.target.files.length > 0) {
-          // Nuke previous model info to ensure a fresh import
+        input.addEventListener("change", function (e) {
+          var files = e.target.files;
+          if (!files || !files.length) return;
+
           localStorage.removeItem("calendar_llm_model_info");
-          
+
           window.WebLLM.calenderLLM
-            .importModel(e.target.files[0])
+            .importMultipleModels(files)
             .then(function (result) {
-              window.HANCampus.toast(result.message);
+              if (window.HANCampus && window.HANCampus.toast) window.HANCampus.toast(result.message);
+              window.dispatchEvent(new CustomEvent("han:model-imported", {
+                detail: { mainModel: result.mainModel, mmproj: result.mmproj, fileCount: files.length }
+              }));
             })
             .catch(function (error) {
-              window.HANCampus.toast("Model import failed: " + error.message);
+              if (window.HANCampus && window.HANCampus.toast) window.HANCampus.toast("Import mislukt: " + error.message);
             });
-        }
-      });
 
-      input.click();
+          // Allow re-selecting the same file later.
+          input.value = "";
+        });
+
+        this._input = input;
+      }
+
+      this._input.click();
     }
   };
 

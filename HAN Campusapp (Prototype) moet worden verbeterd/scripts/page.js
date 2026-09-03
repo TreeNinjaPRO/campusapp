@@ -53,28 +53,20 @@
       });
     }
 
-    // Dark Mode Toggle
+    // Dark Mode Toggle — delegates to HANCampus.setDarkMode (scripts/nav.js)
+    // so the preference is applied consistently on every page, not just
+    // here, and persists across navigation.
     var darkModeToggle = document.getElementById("dark-mode-toggle");
     if (darkModeToggle) {
-      var isDarkMode = localStorage.getItem("dark_mode") === "true";
-      
-      // Initial state
-      if (isDarkMode) {
-        document.body.classList.add("dark-theme");
-        darkModeToggle.textContent = "On";
-      }
+      var isDarkMode = window.HANCampus.isDarkMode();
+      darkModeToggle.textContent = isDarkMode ? "On" : "Off";
+      darkModeToggle.classList.toggle("is-active", isDarkMode);
 
       darkModeToggle.addEventListener("click", function () {
         isDarkMode = !isDarkMode;
-        if (isDarkMode) {
-          document.body.classList.add("dark-theme");
-          darkModeToggle.textContent = "On";
-          localStorage.setItem("dark_mode", "true");
-        } else {
-          document.body.classList.remove("dark-theme");
-          darkModeToggle.textContent = "Off";
-          localStorage.setItem("dark_mode", "false");
-        }
+        window.HANCampus.setDarkMode(isDarkMode);
+        darkModeToggle.textContent = isDarkMode ? "On" : "Off";
+        darkModeToggle.classList.toggle("is-active", isDarkMode);
       });
     }
   });

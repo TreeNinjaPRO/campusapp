@@ -12,7 +12,8 @@
     { title: "Cafeteria", body: "Openingstijden en huidige drukte van de cafeteria." },
     { title: "Overlegpunten", body: "Vrije overlegruimtes die je nu kan reserveren." },
     { title: "Snellaadpunten", body: "Locaties van snellaadpunten voor laptops en telefoons." },
-    { title: "Fietsenstalling met laadpunt", body: "Stallingen met een oplaadpunt voor de e-bike." }
+    { title: "Fietsenstalling met laadpunt", body: "Stallingen met een oplaadpunt voor de e-bike." },
+    { title: "Extracurriculaire activiteiten", body: "Sport-, studie- en studentenverenigingen, commissies en evenementen naast je studie waar je je bij kunt aansluiten." }
   ];
 
   function renderItem(container, item) {

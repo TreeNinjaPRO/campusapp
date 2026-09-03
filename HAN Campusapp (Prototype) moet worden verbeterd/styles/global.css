@@ -43,6 +43,14 @@
   --pill-height: 60px;
   --pill-item-width: 75px;
   --pill-z: 3;
+
+  /* tweened easing curves — used across buttons, modals, the pill nav
+     indicator, toasts and page-content reveals for a more "designed"
+     feel than a flat linear/ease timing function. */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out-soft: cubic-bezier(0.45, 0, 0.15, 1);
+  --ease-spring: cubic-bezier(0.22, 1.28, 0.36, 1);
 }
 
 * {
@@ -61,12 +69,48 @@ body {
   transition: background-color 300ms ease, color 300ms ease;
 }
 
-/* Dark mode */
+/* Automatic OS-level dark mode. This is the master switch every
+   currentColor-based icon (see scripts/nav.js) and the base surface/text
+   tokens key off of. Previously nothing overrode these tokens for
+   prefers-color-scheme, only for the manual .dark-theme class below — so
+   icons and untouched components stayed in light-mode colors (i.e. dark
+   text/icons) even on a system set to dark, making them unreadable.
+   :not(.light-theme) lets the manual toggle force light regardless of OS. */
+@media (prefers-color-scheme: dark) {
+  html:not(.light-theme):not(.dark-theme) {
+    --color-surface: var(--color-dark-bg);
+    --color-dark: var(--color-dark-text);
+    --color-light: var(--color-dark-surface);
+    --color-line: var(--color-dark-line);
+    color-scheme: dark;
+  }
+}
+
+/* Dark mode (manual toggle, applied to <html> by scripts/nav.js — see
+   HANCampus.setDarkMode). Persists across every page, not just the one
+   the toggle lives on. */
 .dark-theme {
   --color-surface: var(--color-dark-bg);
   --color-dark: var(--color-dark-text);
   --color-light: var(--color-dark-surface);
   --color-line: var(--color-dark-line);
+}
+
+/* Explicit "force light" — lets the manual toggle win even when the OS
+   is set to dark (prefers-color-scheme is a media query and can't be
+   scoped by a class on its own, so component-level dark rules below
+   remain OS-driven; this covers the base surface so the page never
+   looks broken/mismatched when the user explicitly chose light). */
+.light-theme {
+  --color-surface: #f4f4f2;
+  --color-dark: #171c18;
+  --color-light: #ffffff;
+  --color-line: rgba(23, 28, 24, 0.12);
+  color-scheme: light;
+}
+
+.dark-theme {
+  color-scheme: dark;
 }
 
 .dark-theme .page__lead {
@@ -272,12 +316,35 @@ button:active {
   pointer-events: none;
 }
 
-.topbar__logo {
+.topbar__logo-link {
   position: absolute;
   top: var(--logo-offset);
   right: var(--logo-offset);
-  height: 32px;
   pointer-events: auto;
+  display: block;
+  transition: transform 160ms var(--ease-out-back);
+}
+
+.topbar__logo-link:hover {
+  transform: scale(1.04);
+}
+
+.topbar__logo-link:active {
+  transform: scale(0.97);
+}
+
+.topbar__logo {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+/* Inline SVG (see scripts/nav.js) so the "campus" wordmark can recolor
+   with the theme instead of being permanently baked-in dark text that
+   disappeared against dark backgrounds. */
+.topbar__logo-text {
+  fill: var(--color-dark);
+  transition: fill 300ms ease;
 }
 
 .page {
@@ -397,6 +464,7 @@ button:active {
 }
 
 .borderpill {
+  position: relative;
   width: var(--pill-width);
   height: var(--pill-height);
   border-radius: 30px;
@@ -409,6 +477,30 @@ button:active {
   transition: background-color 300ms ease, box-shadow 300ms ease;
 }
 
+/* Tweened highlight that slides beneath the active nav item (see
+   scripts/nav.js moveIndicator). Sits below the item content via z-index
+   so the icon/label above it are unaffected. */
+.innerpill__indicator {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  width: var(--pill-item-width);
+  border-radius: 24px;
+  background: rgba(231, 0, 82, 0.1);
+  opacity: 0;
+  transform: translateX(0);
+  transition: transform 420ms var(--ease-spring), width 420ms var(--ease-spring), opacity 200ms ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .innerpill__indicator {
+    background: rgba(255, 77, 122, 0.16);
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .borderpill {
     background: rgba(26, 31, 29, 0.9);
@@ -417,6 +509,8 @@ button:active {
 }
 
 .innerpill {
+  position: relative;
+  z-index: 1;
   width: var(--pill-item-width);
   display: flex;
   flex-direction: column;
@@ -424,7 +518,7 @@ button:active {
   justify-content: center;
   gap: 3px;
   color: rgba(23, 28, 24, 0.55);
-  transition: color 160ms ease, transform 120ms ease, opacity 160ms ease;
+  transition: color 160ms var(--ease-out-expo), transform 220ms var(--ease-spring), opacity 160ms ease;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1000,7 +1094,8 @@ button:active {
   font-weight: 600;
 }
 
-.innermap__label img {
+.innermap__label img,
+.innermap__icon {
   width: 20px;
   height: 20px;
 }
@@ -1041,6 +1136,63 @@ button:active {
 
   .locate-box input::placeholder {
     color: rgba(224, 224, 224, 0.5);
+  }
+}
+
+#locate-save {
+  flex-shrink: 0;
+  font-size: 16px;
+  transition: transform 160ms var(--ease-out-back), color 160ms ease;
+}
+
+#locate-save:hover {
+  transform: scale(1.1);
+  color: var(--color-primary);
+}
+
+.saved-addresses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.saved-address-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 16px;
+  border: 1px solid var(--color-line);
+  background: var(--color-light);
+  color: var(--color-dark);
+  font-size: var(--text-size-sm);
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out-back), background-color 300ms ease, border-color 300ms ease;
+  animation: block-in 200ms var(--ease-out-expo) both;
+}
+
+.saved-address-chip:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-primary);
+}
+
+.saved-address-chip__remove {
+  opacity: 0.5;
+  font-weight: 700;
+  transition: opacity 160ms ease;
+}
+
+.saved-address-chip__remove:hover {
+  opacity: 1;
+  color: var(--color-primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  .saved-address-chip {
+    background: var(--color-dark-surface);
+    border-color: var(--color-dark-line);
+    color: var(--color-dark-text);
   }
 }
 
@@ -1173,6 +1325,7 @@ button:active {
 }
 
 .study-block {
+  position: relative;
   padding: var(--global-up) var(--global-right) 20px var(--global-left);
   border-radius: 0;
   text-align: center;
@@ -1202,6 +1355,80 @@ button:active {
 @media (prefers-color-scheme: dark) {
   .study-block__desc {
     color: rgba(224, 224, 224, 0.65);
+  }
+}
+
+/* ==========================================================================
+   EC completion circle — /education/index.html "Studiepunten" block.
+   Sits 20px from the block's top-left inner corner. A pink conic-gradient
+   ring shows earned/total progress (like a typical EC completion donut);
+   clicking it turns the center into a small ##-## input.
+   ========================================================================== */
+.ec-circle {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(
+    var(--color-primary) calc(var(--ec-pct, 0) * 1%),
+    rgba(231, 0, 82, 0.15) 0
+  );
+  transition: transform 220ms var(--ease-out-back), box-shadow 220ms ease;
+}
+
+.ec-circle::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--color-light);
+  transition: background-color 300ms ease;
+}
+
+.ec-circle:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(231, 0, 82, 0.25);
+}
+
+.ec-circle:active {
+  transform: scale(0.96);
+}
+
+.ec-circle__value {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.2px;
+}
+
+.ec-circle__input {
+  position: relative;
+  z-index: 1;
+  width: 38px;
+  border: none;
+  outline: none;
+  background: transparent;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--color-primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  .ec-circle::before {
+    background: var(--color-dark-surface);
   }
 }
 
@@ -1671,14 +1898,25 @@ body.page-assistant .model-importer-pill {
   font-weight: 600;
   z-index: 4;
   box-shadow: var(--shadow-card);
-  transition: opacity 160ms ease, transform 100ms ease, background-color 300ms ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 160ms ease, transform 220ms var(--ease-out-back), background-color 300ms ease, box-shadow 220ms ease;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.ask-hanssistent-btn__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .ask-hanssistent-btn:hover {
   opacity: 0.9;
   background: var(--color-primary-dim);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(231, 0, 82, 0.28);
 }
 
 .ask-hanssistent-btn:active {

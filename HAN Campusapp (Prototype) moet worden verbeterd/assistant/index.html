@@ -4,7 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HANssistent — HAN Campusapp</title>
-  <link rel="stylesheet" href="/styles/global.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e70052'/%3E%3Cpath d='M9 8v16M9 16h9M18 8v16' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/styles/global.css" />
 </head>
 <body>
   <main class="page">
@@ -13,7 +14,7 @@
 
     <div class="assistant-shell">
       <div id="assistant-status" class="assistant-status">
-        Nog geen model geladen.
+        HANssistent wordt geladen…
       </div>
 
       <div class="assistant-mode-toggle">
@@ -30,11 +31,7 @@
         <button id="analyze-schedule-btn" class="btn btn--primary btn--square">Analyseer</button>
       </div>
 
-      <div id="assistant-log" class="assistant-log">
-        <div class="assistant-msg assistant-msg--system">
-          Importeer een model linksonder om te beginnen.
-        </div>
-      </div>
+      <div id="assistant-log" class="assistant-log"></div>
 
       <form id="assistant-form" class="assistant-composer">
         <input id="assistant-input" type="text" placeholder="Typ een bericht…" autocomplete="off" />
@@ -42,8 +39,6 @@
       </form>
     </div>
   </main>
-
-  <input id="gguf-file-input" type="file" accept=".gguf" multiple hidden />
 
   <script src="/scripts/nav.js" defer></script>
   <script src="/scripts/webllm.js" defer></script>

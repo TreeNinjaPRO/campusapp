@@ -96,7 +96,7 @@
       '<p class="comms-card__title">' + service.title + "</p>" +
       '<p class="comms-card__desc">' + service.desc + "</p>" +
       "</div>" +
-      '<img class="comms-card__download" src="/assets/internet.svg" alt="Openen" />';
+      window.HANCampus.icon("open", "comms-card__download");
     container.appendChild(card);
   }
 

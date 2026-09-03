@@ -4,7 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Opleiding — HAN Campusapp</title>
-  <link rel="stylesheet" href="/styles/global.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e70052'/%3E%3Cpath d='M9 8v16M9 16h9M18 8v16' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/styles/global.css" />
 </head>
 <body>
   <main class="page">
@@ -12,7 +13,10 @@
     <p class="page__lead">Studievoortgang en leermiddelen in één overzicht.</p>
 
     <div class="study-blocks">
-      <div class="square-block study-block">
+      <div class="square-block study-block study-block--points" id="studiepunten-block">
+        <div id="ec-circle" class="ec-circle" role="button" tabindex="0" title="Klik om je EC-voortgang in te vullen (bv. 45-60)">
+          <span id="ec-circle-value" class="ec-circle__value">--/--</span>
+        </div>
         <img class="study-block__logo" src="/assets/logo.svg" alt="Studiepunten" />
         <p class="study-block__desc">Bekijk hoeveel studiepunten je al hebt behaald dit jaar.</p>
         <a class="study-block__link" href="https://isas.han.nl/default.aspx" target="_blank" rel="noopener">

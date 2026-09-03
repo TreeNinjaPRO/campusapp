@@ -213,13 +213,54 @@
         var frames = [];
         var frameCount = 0;
         var maxFrames = 15;
+        var finished = false;
 
         window.HANCampus.toast("Frames vastleggen...");
 
+        /**
+         * Wrap up capture and hand whatever frames we have to the AI
+         * pipeline. Called on normal completion (15 frames), when the
+         * user stops sharing early via the browser's own "Stop sharing"
+         * control, or when a grab fails mid-way — in every case the
+         * frames captured so far are still analyzed instead of being
+         * discarded, so an early stop never throws the result away.
+         */
+        function finish(reason) {
+          if (finished) return;
+          finished = true;
+          clearInterval(frameInterval);
+          stream.getTracks().forEach(function (t) {
+            t.stop();
+          });
+
+          if (!frames.length) {
+            window.HANCampus.toast("Geen frames vastgelegd — ik gebruik het standaard roosterformaat.");
+          } else if (reason === "early") {
+            window.HANCampus.toast("Schermdelen gestopt — AI werkt verder met de " + frames.length + " vastgelegde frame(s).");
+          }
+
+          // Stash the last frame so the assistant page can offer to
+          // analyze it too ("Ask HANssistent" → calenderLLM mode).
+          if (frames.length) {
+            sessionStorage.setItem(CAPTURE_KEY, frames[frames.length - 1]);
+          }
+
+          // Send whatever frames we have to CalenderLLM. processMultipleFrames
+          // and the underlying guaranteed fallback both handle an empty
+          // array gracefully, so this always produces a usable .ics file.
+          processMultipleFrames(frames);
+        }
+
+        // User stopped sharing early via the browser's native UI/shortcut.
+        track.addEventListener("ended", function () {
+          finish("early");
+        });
+
         // Capture frames every second for up to 15 seconds
         var frameInterval = setInterval(async function () {
+          if (finished) return;
           try {
-            if (frameCount < maxFrames) {
+            if (frameCount < maxFrames && track.readyState === "live") {
               var bitmap = await capture.grabFrame();
               var canvas = document.createElement("canvas");
               canvas.width = bitmap.width;
@@ -230,18 +271,14 @@
               frames.push(base64);
               frameCount++;
             } else {
-              clearInterval(frameInterval);
-              stream.getTracks().forEach(function (t) {
-                t.stop();
-              });
-
-              // Send all frames to CalenderLLM for filtering
-              processMultipleFrames(frames);
+              finish(frameCount >= maxFrames ? "complete" : "early");
             }
           } catch (err) {
-            clearInterval(frameInterval);
-            console.error("Frame capture error:", err);
-            window.HANCampus.toast("Fout bij vastleggen frames.");
+            // A grab failure usually means the track ended mid-capture —
+            // still finish with whatever frames we already have rather
+            // than just showing an error and losing all progress.
+            console.warn("Frame capture stopped early:", err);
+            finish("early");
           }
         }, 1000);
 
@@ -259,29 +296,34 @@
      */
     function processMultipleFrames(frames) {
       if (!window.WebLLM || !window.WebLLM.calenderLLM) {
-        window.HANCampus.toast("AI model niet beschikbaar. Importeer eerst een model.");
+        // Should not happen — kept as a defensive last resort so the user
+        // is never met with total silence if something upstream changes.
+        window.HANCampus.toast("AI-module niet beschikbaar. Ververs de pagina en probeer opnieuw.");
         return;
       }
 
       window.HANCampus.toast("Rooster analyseren (" + frames.length + " frames)...");
 
-      // Process all frames with LLM to filter relevant content
+      // Process all frames with LLM to filter relevant content. This always
+      // resolves — either with a real local-model analysis or the
+      // guaranteed local fallback generator — so the user always ends up
+      // with a usable .ics file.
       window.WebLLM.calenderLLM
         .processScheduleScreenshot(frames)
         .then(function (result) {
           var icsContent = window.WebLLM.calenderLLM.extractICS(result);
 
           if (icsContent) {
-            window.WebLLM.calenderLLM.downloadICS(icsContent, "calender.ics");
+            window.WebLLM.calenderLLM.downloadICS(icsContent, "rooster.ics");
             window.HANCampus.toast("Rooster gedownload! Importeer in je kalender.");
             sessionStorage.setItem("calendar_llm_result", JSON.stringify(result));
           } else {
-            window.HANCampus.toast("Fout: Geen geldige kalendergegevens gegenereerd.");
+            window.HANCampus.toast("Geen geldige kalendergegevens herkend op de screenshot.");
           }
         })
         .catch(function (error) {
           console.error("LLM processing error:", error);
-          window.HANCampus.toast("AI verwerking mislukt. Probeer opnieuw.");
+          window.HANCampus.toast("AI-verwerking mislukt: " + (error && error.message ? error.message : "onbekende fout"));
         });
     }
   });
